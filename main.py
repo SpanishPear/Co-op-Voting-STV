@@ -76,7 +76,7 @@ def generateInitialVotes(columns) -> dict:
     return initialVotes        
 
 if __name__ == "__main__":
-    usage = "usage: %prog [options] arg"
+    usage = "usage: %prog [options]"
     parser = OptionParser(usage)
     parser.add_option("-f", "--file", dest="filename",
                       help="read csv voting data from FILENAME")
@@ -100,6 +100,11 @@ if __name__ == "__main__":
     
         pp = pprint.PrettyPrinter()
         pp.pprint(initialVotes)
+    #TODO 
+    #  - unique list of applicants - with list of roles
+    # ie {
+    #     "Ian" : ["Vp", "pres", "secretary"]
+    # }
 
 
 
