@@ -47,17 +47,10 @@ class candidate:
 
     def transferVotes(self, position, quota):
         if position in self.positionsApplied:
-            #print(self.positionsApplied[position])
-            surplus = len(self.positionsApplied[position]) - quota
-            i = 0
             for b in self.positionsApplied[position]:
-                #print(self.getName(), "transferring")
-                if (i >= surplus): 
-                    break
-
+                
                 b.popVote()
                 b.applyVote()
-                i += 1
     
 
     def getPositionsApplied(self):
@@ -183,12 +176,12 @@ for i in range(2):
     b = ballot('pres', [pear, orange,ph,ph,ph])
     ballotList.append(b)
 
-for i in range(8):
+for i in range(2):
     b = ballot('pres', [choc, straw, ph,ph,ph])
     ballotList.append(b)
 
 
-for i in range(4):
+for i in range(3):
     b = ballot('pres', [choc, burg,ph,ph,ph])
     ballotList.append(b)
 
@@ -202,9 +195,10 @@ candidateList = [orange, pear, choc, straw, burg, ph]
 e = election(candidateList, rolesList, n2w, ballotList)
 #print(choc.positionsApplied['pres'])
 
-e.tally('pres', [choc])
+e.tally('pres', [])
 
-
+#ian Ng: i'm applying for pres, vp, arc
+#{ian ng : [roles]}
 
 
 
