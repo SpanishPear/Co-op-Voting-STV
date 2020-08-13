@@ -24,12 +24,11 @@ class ballot:
 
 
 
-
-
 class candidate:
     def __init__(self, name : str, positionsApplied : list):
         self.name = name
         self.positionsApplied = {}
+        self.votes = 0
 
         for position in positionsApplied:
             self.positionsApplied[position] = []
@@ -45,24 +44,85 @@ class candidate:
             self.positionsApplied[position].append(ballot)
 
 
-    def transferVotes(self, position, quota):
+    def transferAdd(self, numVotes):
+        #print('i', self.getName(), 'have', self.votes)
+
+        self.votes += numVotes
+        #print('i', self.getName(), 'now have', self.votes)
+
+
+
+
+
+
+    def buildProportion(self, position, quota):
         if position in self.positionsApplied:
-            for b in self.positionsApplied[position]:
+            ballotList = self.positionsApplied[position]
+            freq = {}
+            for b in ballotList:
+                secondPref = b.getVote(1)
+
+                if secondPref not in freq:
+                    freq[secondPref] = 1
+                else:
+                    freq[secondPref] += 1
+        
+        return freq
+
+
+        
+
+
+
+    def transferVotes(self, position, quota, surplus=False):
+        #print('transfering')
+        if position in self.positionsApplied:
+            freq = self.buildProportion(position, quota)
+
+
+            for secondPref in freq:
+                if (surplus):
+                    #print('surplus')
+                    total = self.tallyVotes(position)
+                    surplus = total - quota
+                    print("there are", freq[secondPref], "votes to", secondPref.getName(), "i,", self.getName(), "have a total of", total, "surplus is", surplus)
+                    f = round(freq[secondPref]/total)
+                    #print("fract is", f)
+
+                    fractionThing = round((freq[secondPref] / total) * surplus)
+                    #print('giving', secondPref.getName(), fractionThing, "votes")
+                    
+                    secondPref.transferAdd(fractionThing)
                 
-                b.popVote()
-                b.applyVote()
+                else:
+                    #print('hi i am', self.getName(), "transferring", freq[secondPref], "votes to", secondPref.getName(),)
+                    secondPref.transferAdd(freq[secondPref])
+                    
+                    #print(secondPref.tallyVotes(position))
+
     
 
     def getPositionsApplied(self):
         return self.positionsApplied
 
 
+
+
+
+
     def tallyVotes(self, position):
-        if position in self.positionsApplied:
-            #print("look at me:" , (self.positionsApplied[position]))
-            return len(self.positionsApplied[position])
+        ##could break
+
+        if (not self.votes):
+            if position in self.positionsApplied:
+                #print("hi")
+                self.votes = len(self.positionsApplied[position])
         
-        return 0
+        return self.votes
+
+        
+       
+
         
 
 
@@ -94,10 +154,10 @@ class election:
                 return c
     
 
-    def removeCandidate(self, c, position, quota):
+    def removeCandidate(self, c, position, quota, surplus=False):
         #print(self.roles[position])
         if c in self.roles[position]:
-            c.transferVotes(position, quota)
+            c.transferVotes(position, quota, surplus)
             self.roles[position].remove(c)
 
 
@@ -106,7 +166,29 @@ class election:
             i.applyVote()
 
 
-    def tally(self, position, exclusionList):
+    def getMaxVotes(self, position):
+        m = self.roles[position][0]
+        maxVotes = m.tallyVotes(position)
+        for c in self.roles[position]:
+            if (c.tallyVotes(position) > maxVotes):
+                maxVotes = c.tallyVotes(position)
+                m = c
+        return m
+
+
+    def getMinVotes(self, position):
+        m = self.roles[position][0]
+        minVotes = m.tallyVotes(position)
+        for c in self.roles[position]:
+            if (c.tallyVotes(position) < minVotes):
+                minVotes = c.tallyVotes(position)
+                m = c
+        
+        return m
+
+
+
+    def tally(self, position, surplusList, transferList):
         quota = self.check[position]
         print('quota is',quota)
         print()
@@ -114,8 +196,14 @@ class election:
         ballots = self.getBallots(position)
         self.applyVotes(ballots)
 
-        for c in exclusionList:
+        for c in self.roles[position]:
+            c.tallyVotes(position)
+
+        for c in transferList:
             self.removeCandidate(c, position, quota)
+
+        for c in surplusList:
+            self.removeCandidate(c, position, quota, True)
             #print('removing', c.getName())
 
     
@@ -130,33 +218,30 @@ class election:
         while (maxVotes < quota and len(self.roles[position]) > 1):
 
             #print(self.roles[position])
-            maxCandidate = self.roles[position][0]
-
+            maxCandidate = self.getMaxVotes(position)
             maxVotes = maxCandidate.tallyVotes(position)
-            minCandidate = self.roles[position][0]
-            minVotes = maxVotes
+            minCandidate = self.getMinVotes(position)
 
-
-            for c in self.roles[position]:
-                votes = c.tallyVotes(position)
-                print(c.getName(), 'has', votes)
-
-                if (votes > maxVotes):
-                    maxVotes = votes
-                    maxCandidate = c
-                
-                if (votes < minVotes):
-                    minVotes = votes
-                    minCandidate = c
-            
             if (maxVotes < quota):
-                #print('removing', minCandidate.getName())
                 self.removeCandidate(minCandidate, position, quota)
                 print("\n\n\n")
-            
-        print("the", position, "of Co-op soc ", 2020 + 1, "is", maxCandidate.getName(), "with", maxVotes)
+            else:
+                self.removeCandidate(maxCandidate, position, quota, True)
+                print("the", position, "of Co-op soc ", 2020 + 1, "is", maxCandidate.getName(), "with", maxVotes, "the min candidate removed was", minCandidate.getName())
+                minCandidate = self.getMinVotes(position)
+                self.removeCandidate(minCandidate, position, quota)
 
+                if (len(self.roles[position]) > 0):
+                    maxCandidate = self.roles[position][0]
+                    maxVotes = maxCandidate.tallyVotes(position)
+                    minCandidate = self.roles[position][0]
+                    minVotes = maxVotes
+                else:
+                    break
 
+        
+
+        
 
 
 orange = candidate('orange', ['pres'])
@@ -176,12 +261,12 @@ for i in range(2):
     b = ballot('pres', [pear, orange,ph,ph,ph])
     ballotList.append(b)
 
-for i in range(2):
+for i in range(8):
     b = ballot('pres', [choc, straw, ph,ph,ph])
     ballotList.append(b)
 
 
-for i in range(3):
+for i in range(4):
     b = ballot('pres', [choc, burg,ph,ph,ph])
     ballotList.append(b)
 
@@ -195,7 +280,9 @@ candidateList = [orange, pear, choc, straw, burg, ph]
 e = election(candidateList, rolesList, n2w, ballotList)
 #print(choc.positionsApplied['pres'])
 
-e.tally('pres', [])
+e.tally('pres', [], [])
+
+#print(orange)
 
 #ian Ng: i'm applying for pres, vp, arc
 #{ian ng : [roles]}
