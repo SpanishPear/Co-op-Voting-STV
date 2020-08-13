@@ -85,7 +85,7 @@ class candidate:
                     #print('surplus')
                     total = self.tallyVotes(position)
                     surplus = total - quota
-                    print("there are", freq[secondPref], "votes to", secondPref.getName(), "i,", self.getName(), "have a total of", total, "surplus is", surplus)
+                    #print("there are", freq[secondPref], "votes to", secondPref.getName(), "i,", self.getName(), "have a total of", total, "surplus is", surplus)
                     f = round(freq[secondPref]/total)
                     #print("fract is", f)
 
@@ -134,8 +134,14 @@ class election:
         self.check = needToWin
         self.ballotsList = ballotsList
         self.candidateList = candidateList
+
+        self.winners = {}
+        self.losers = {}
+
         for r in rolesList:
             self.roles[r] = []
+            self.winners[r] = []
+            self.losers[r] = []
 
         for c in candidateList:
             #print("adding", c.getName(), c.getPositionsApplied())
@@ -159,6 +165,11 @@ class election:
         if c in self.roles[position]:
             c.transferVotes(position, quota, surplus)
             self.roles[position].remove(c)
+            if (surplus):
+                self.winners[position].append(c.getName())
+            else:
+                self.losers[position].append(c.getName())
+
 
 
     def applyVotes(self,ballotList):
@@ -199,45 +210,33 @@ class election:
         for c in self.roles[position]:
             c.tallyVotes(position)
 
-        for c in transferList:
-            self.removeCandidate(c, position, quota)
-
-        for c in surplusList:
-            self.removeCandidate(c, position, quota, True)
-            #print('removing', c.getName())
-
-    
-
-        maxCandidate = self.roles[position][0]
-
-        maxVotes = maxCandidate.tallyVotes(position)
-        minCandidate = self.roles[position][0]
-        minVotes = maxVotes
-
         
-        while (maxVotes < quota and len(self.roles[position]) > 1):
+        while (len(self.roles[position]) > 1):
 
             #print(self.roles[position])
             maxCandidate = self.getMaxVotes(position)
             maxVotes = maxCandidate.tallyVotes(position)
             minCandidate = self.getMinVotes(position)
 
+            for c in self.roles[position]:
+                print(c.getName(), 'has', c.tallyVotes(position))
+
             if (maxVotes < quota):
                 self.removeCandidate(minCandidate, position, quota)
                 print("\n\n\n")
             else:
                 self.removeCandidate(maxCandidate, position, quota, True)
-                print("the", position, "of Co-op soc ", 2020 + 1, "is", maxCandidate.getName(), "with", maxVotes, "the min candidate removed was", minCandidate.getName())
                 minCandidate = self.getMinVotes(position)
+                print("the", position, "of Co-op soc ", 2020 + 1, "is", maxCandidate.getName(), "with", maxVotes, "the min candidate removed was", minCandidate.getName(), "\n\n")
                 self.removeCandidate(minCandidate, position, quota)
+        
+        
+        luckyLast = self.roles[position][0].getName()
 
-                if (len(self.roles[position]) > 0):
-                    maxCandidate = self.roles[position][0]
-                    maxVotes = maxCandidate.tallyVotes(position)
-                    minCandidate = self.roles[position][0]
-                    minVotes = maxVotes
-                else:
-                    break
+
+        print("order:", self.winners[position], [luckyLast], self.losers[position])
+
+                
 
         
 
